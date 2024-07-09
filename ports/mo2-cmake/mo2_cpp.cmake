@@ -125,7 +125,6 @@ function(mo2_configure_target TARGET)
 	source_group(autogen REGULAR_EXPRESSION ".*\\cmake_pch.*")
 	source_group(resources FILES ${rc_files} ${qrc_files})
 
-
 	if(${MO2_TRANSLATIONS})
 		mo2_add_translations(${TARGET}
 		    INSTALL_RELEASE
@@ -251,7 +250,6 @@ endfunction()
 #
 function(mo2_configure_plugin TARGET)
 	mo2_configure_target(${TARGET} ${ARGN})
-	target_link_libraries(${TARGET} PUBLIC uibase)
 
 	set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "plugin")
 
