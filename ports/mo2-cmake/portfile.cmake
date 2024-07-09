@@ -1,7 +1,5 @@
-if(VCPKG_CROSSCOMPILING)
-    # make FATAL_ERROR in CI when issue #16773 fixed
-    message(WARNING "vcpkg-cmake is a host-only port; please mark it as a host port in your dependencies.")
-endif()
+set(VCPKG_POLICY_CMAKE_HELPER_PORT enabled)
+set(VCPKG_POLICY_SKIP_COPYRIGHT_CHECK enabled)
 
 file(INSTALL
     "${CMAKE_CURRENT_LIST_DIR}/mo2_cpp.cmake"
