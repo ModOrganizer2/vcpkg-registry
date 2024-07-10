@@ -1,33 +1,3 @@
 cmake_minimum_required(VERSION 3.22)
 
-if (DEFINED MO2_INCLUDED)
-	return()
-endif()
-
-set(MO2_QT_MAJOR_VERSION 6)
-set(MO2_QT_MINOR_VERSION 7)
-set(MO2_QT_PATCH_VERSION 0)
-set(MO2_QT_VERSION "${MO2_QT_MAJOR_VERSION}.${MO2_QT_MINOR_VERSION}.${MO2_QT_PATCH_VERSION}")
-
-set(MO2_PYTHON_VERSION "3.12")
-
-find_package(Qt6 ${MO2_QT_VERSION} REQUIRED COMPONENTS Core)
-
-# version-major independent variables
-set(Qt_VERSION ${Qt6_VERSION})
-set(Qt_VERSION_MAJOR ${Qt6_VERSION_MAJOR})
-
-include(${CMAKE_CURRENT_LIST_DIR}/mo2_utils.cmake)
-
-set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-set_property(GLOBAL PROPERTY AUTOGEN_SOURCE_GROUP autogen)
-set_property(GLOBAL PROPERTY AUTOMOC_SOURCE_GROUP autogen)
-set_property(GLOBAL PROPERTY AUTORCC_SOURCE_GROUP autogen)
-
-include(${CMAKE_CURRENT_LIST_DIR}/mo2_cpp.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/mo2_python.cmake)
-
-# mark as included
-set(MO2_DEFINED true)
+include(${CMAKE_CURRENT_LIST_DIR}/mo2.cmake)
