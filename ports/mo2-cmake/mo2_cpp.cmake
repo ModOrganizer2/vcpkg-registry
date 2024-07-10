@@ -1,11 +1,150 @@
 cmake_minimum_required(VERSION 3.21)
 
-if (POLICY CMP0144)
-    cmake_policy(SET CMP0144 NEW)
-endif()
-
 include(CMakeParseArguments)
 include(${CMAKE_CURRENT_LIST_DIR}/mo2_utils.cmake)
+
+#! mo2_configure_warnings : configuration warning for C++ target
+#
+# \param:WARNINGS level of warnings, possible values are ON/All, OFF, or 1, 2, 3, 4
+#    for corresponding /W flags (ON is All) (default ON)
+# \param:EXTERNAL enable warnings for external libraries, possible values are
+#   the same as warnings, but ON is 3 (default 1)
+#
+function(mo2_configure_warnings TARGET)
+	cmake_parse_arguments(MO2 "" "WARNINGS;EXTERNAL" "" ${ARGN})
+
+	mo2_set_if_not_defined(MO2_WARNINGS ON)
+	mo2_set_if_not_defined(MO2_EXTERNAL 1)
+
+	if (${MO2_WARNINGS} STREQUAL "ON")
+		set(MO2_WARNINGS "All")
+	endif()
+
+	if (${MO2_EXTERNAL} STREQUAL "ON")
+		set(MO2_EXTERNAL "3")
+	endif()
+
+	if(NOT (${MO2_WARNINGS} STREQUAL "OFF"))
+		string(TOLOWER ${MO2_WARNINGS} MO2_WARNINGS)
+		target_compile_options(${TARGET} PRIVATE "/W${MO2_WARNINGS}" "/wd4464")
+
+		# external warnings
+		if (${MO2_EXTERNAL} STREQUAL "OFF")
+			target_compile_options(${TARGET}
+				PRIVATE "/external:anglebrackets" "/external:W0")
+		else()
+			string(TOLOWER ${MO2_EXTERNAL} MO2_EXTERNAL)
+			target_compile_options(${TARGET}
+				PRIVATE "/external:anglebrackets" "/external:W${MO2_EXTERNAL}")
+		endif()
+	endif()
+
+endfunction()
+
+#! mo2_configure_sources : configure sources for the given C++ target
+#
+# \param:SOURCE_TREE if set, a source_group will be created using TREE
+#
+function(mo2_configure_sources TARGET)
+	cmake_parse_arguments(MO2 "SOURCE_TREE" "" "" ${ARGN})
+
+	# find source files
+	if(DEFINED AUTOGEN_BUILD_DIR)
+		set(UI_HEADERS_DIR ${AUTOGEN_BUILD_DIR})
+	else()
+		set(UI_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_autogen/include_RelWithDebInfo)
+	endif()
+
+	file(GLOB_RECURSE source_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+	file(GLOB_RECURSE header_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+	file(GLOB_RECURSE qrc_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
+	file(GLOB_RECURSE rc_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.rc)
+	file(GLOB_RECURSE ui_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.ui)
+	file(GLOB_RECURSE ui_header_files CONFIGURE_DEPENDS ${UI_HEADERS_DIR}/*.h)
+	file(GLOB_RECURSE rule_files CONFIGURE_DEPENDS ${CMAKE_BINARY_DIR}/*.rule)
+
+	if (${MO2_SOURCE_TREE})
+		source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}
+			PREFIX src FILES ${source_files} ${header_files})
+	else()
+		source_group(src REGULAR_EXPRESSION ".*\\.(h|cpp)")
+	endif()
+
+	source_group(ui REGULAR_EXPRESSION ".*\\.ui")
+	source_group(cmake FILES CMakeLists.txt)
+	source_group(autogen FILES ${rule_files} ${qm_files} ${ui_header_files})
+	source_group(autogen REGULAR_EXPRESSION ".*\\cmake_pch.*")
+	source_group(resources FILES ${rc_files} ${qrc_files})
+
+	target_sources(${TARGET}
+		PRIVATE
+		${source_files}
+		${header_files}
+		${ui_files}
+		${ui_header_files}
+		${qrc_files}
+		${rc_files}
+		${misc_files}
+		${qm_files})
+
+endfunction()
+
+#! mo2_configure_msvc : set flags for C++ target with MSVC
+#
+# \param:PERMISSIVE permissive mode (default OFF)
+# \param:BIGOBJ enable bigobj (default OFF)
+# \param:CLI enable C++/CLR (default OFF)
+#
+function(mo2_configure_msvc TARGET)
+
+	if (NOT MSVC)
+		return()
+	endif()
+
+	cmake_parse_arguments(MO2 "" "PERMISSIVE;BIGOBJ;CLI" "" ${ARGN})
+
+	set(CXX_STANDARD 20)
+	if (${MO2_CLI})
+		set(CXX_STANDARD 17)
+	endif()
+	set_target_properties(${TARGET} PROPERTIES
+		CXX_STANDARD ${CXX_STANDARD} CXX_EXTENSIONS OFF)
+
+	if(NOT ${MO2_PERMISSIVE})
+		target_compile_options(${TARGET} PRIVATE "/permissive-")
+	endif()
+
+	if(${MO2_BIGOBJ})
+		target_compile_options(${TARGET} PRIVATE "/bigobj")
+	endif()
+
+	# multi-threaded compilation
+	target_compile_options(${TARGET} PRIVATE "/MP")
+
+	# VS emits a warning for LTCG, at least for uibase, so maybe not required?
+	target_link_options(${TARGET}
+		PRIVATE
+		$<$<CONFIG:RelWithDebInfo>:
+			# enable link-time code generation
+			/LTCG
+
+			# disable incremental linking
+			/INCREMENTAL:NO
+
+			# eliminates functions and data that are never referenced
+			/OPT:REF
+
+			# perform identical COMDAT folding
+			/OPT:ICF
+		>)
+
+    if(${MO2_CLI})
+		set_target_properties(${TARGET} PROPERTIES COMMON_LANGUAGE_RUNTIME "")
+    endif()
+
+	set_target_properties(${TARGET} PROPERTIES VS_STARTUP_PROJECT ${TARGET})
+
+endfunction()
 
 #! mo2_configure_target : do basic configuration for a MO2 C++ target
 #
@@ -33,8 +172,6 @@ function(mo2_configure_target TARGET)
 		${ARGN})
 
 	# configure parameters and compiler flags
-	mo2_set_if_not_defined(MO2_WARNINGS ON)
-	mo2_set_if_not_defined(MO2_EXTERNAL_WARNINGS 1)
 	mo2_set_if_not_defined(MO2_PERMISSIVE OFF)
 	mo2_set_if_not_defined(MO2_BIGOBJ OFF)
 	mo2_set_if_not_defined(MO2_CLI OFF)
@@ -42,88 +179,15 @@ function(mo2_configure_target TARGET)
 	mo2_set_if_not_defined(MO2_AUTOMOC ON)
 	mo2_set_if_not_defined(MO2_EXTRA_TRANSLATIONS "")
 
+	mo2_configure_warnings(${TARGET} ${ARGN})
+	mo2_configure_sources(${TARGET} ${ARGN})
+	mo2_configure_msvc(${TARGET} ${ARGN})
+
 	if (${MO2_AUTOMOC})
 		find_package(Qt6 COMPONENTS Widgets REQUIRED)
 		set_target_properties(${TARGET}
 			PROPERTIES AUTOMOC ON AUTOUIC ON AUTORCC ON)
 	endif()
-
-	target_compile_options(${TARGET}
-		PRIVATE "/MP"
-		$<$<CONFIG:RelWithDebInfo>:/O2>
-	)
-
-	set(CXX_STANDARD 20)
-	if (${MO2_CLI})
-		set(CXX_STANDARD 17)
-	endif()
-	set_target_properties(${TARGET} PROPERTIES
-		CXX_STANDARD ${CXX_STANDARD}
-		CXX_EXTENSIONS OFF)
-
-	# VS emits a warning for LTCG, at least for uibase, so maybe not required?
-	target_link_options(${TARGET}
-		PRIVATE
-		$<$<CONFIG:RelWithDebInfo>:/LTCG /INCREMENTAL:NO /OPT:REF /OPT:ICF>)
-
-	if (${MO2_WARNINGS} STREQUAL "ON")
-		set(MO2_WARNINGS "All")
-	endif()
-
-	if (${MO2_EXTERNAL_WARNINGS} STREQUAL "ON")
-		set(MO2_EXTERNAL_WARNINGS "3")
-	endif()
-
-	if(NOT (${MO2_WARNINGS} STREQUAL "OFF"))
-		string(TOLOWER ${MO2_WARNINGS} MO2_WARNINGS)
-		target_compile_options(${TARGET} PRIVATE "/W${MO2_WARNINGS}" "/wd4464")
-
-		# external warnings
-		if (${MO2_EXTERNAL_WARNINGS} STREQUAL "OFF")
-			target_compile_options(${TARGET}
-				PRIVATE "/external:anglebrackets" "/external:W0")
-		else()
-			string(TOLOWER ${MO2_EXTERNAL_WARNINGS} MO2_EXTERNAL_WARNINGS)
-			target_compile_options(${TARGET}
-				PRIVATE "/external:anglebrackets" "/external:W${MO2_EXTERNAL_WARNINGS}")
-		endif()
-	endif()
-
-	if(NOT ${MO2_PERMISSIVE})
-		target_compile_options(${TARGET} PRIVATE "/permissive-")
-	endif()
-
-	if(${MO2_BIGOBJ})
-		target_compile_options(${TARGET} PRIVATE "/bigobj")
-	endif()
-
-	# find source files
-	if(DEFINED AUTOGEN_BUILD_DIR)
-		set(UI_HEADERS_DIR ${AUTOGEN_BUILD_DIR})
-	else()
-		set(UI_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_autogen/include_RelWithDebInfo)
-	endif()
-
-	file(GLOB_RECURSE source_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-	file(GLOB_RECURSE header_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
-	file(GLOB_RECURSE qrc_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
-	file(GLOB_RECURSE rc_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.rc)
-	file(GLOB_RECURSE ui_files CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.ui)
-	file(GLOB_RECURSE ui_header_files CONFIGURE_DEPENDS ${UI_HEADERS_DIR}/*.h)
-	file(GLOB_RECURSE rule_files CONFIGURE_DEPENDS ${CMAKE_BINARY_DIR}/*.rule)
-
-	if (${MO2_SOURCE_TREE})
-		source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}
-			PREFIX src
-			FILES ${source_files} ${header_files})
-	else()
-		source_group(src REGULAR_EXPRESSION ".*\\.(h|cpp)")
-	endif()
-	source_group(ui REGULAR_EXPRESSION ".*\\.ui")
-	source_group(cmake FILES CMakeLists.txt)
-	source_group(autogen FILES ${rule_files} ${qm_files} ${ui_header_files})
-	source_group(autogen REGULAR_EXPRESSION ".*\\cmake_pch.*")
-	source_group(resources FILES ${rc_files} ${qrc_files})
 
 	if(${MO2_TRANSLATIONS})
 		mo2_add_translations(${TARGET}
@@ -131,54 +195,14 @@ function(mo2_configure_target TARGET)
 			SOURCES ${CMAKE_CURRENT_SOURCE_DIR} ${MO2_EXTRA_TRANSLATIONS})
 	endif()
 
-	target_sources(${TARGET}
-		PRIVATE
-		${source_files}
-		${header_files}
-		${ui_files}
-		${ui_header_files}
-		${qrc_files}
-		${rc_files}
-		${misc_files}
-		${qm_files})
-
-	execute_process(
-	  COMMAND git log -1 --format=%h
-	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-	  OUTPUT_VARIABLE GIT_COMMIT_HASH
-	  OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-
+	mo2_find_git_hash(GIT_COMMIT_HASH)
 	target_compile_definitions(
-		${TARGET}
-		PRIVATE
-		_UNICODE
-		UNICODE
-		NOMINMAX
-		_CRT_SECURE_NO_WARNINGS
-		BOOST_CONFIG_SUPPRESS_OUTDATED_MESSAGE
-		_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
-		QT_MESSAGELOGCONTEXT
-		GITID="${GIT_COMMIT_HASH}")
+		${TARGET} PRIVATE NOMINMAX QT_MESSAGELOGCONTEXT GITID="${GIT_COMMIT_HASH}")
 
 	if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/pch.h)
 		target_precompile_headers(${PROJECT_NAME}
 			PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/pch.h)
 	endif()
-
-    if(${MO2_CLI})
-        if (CMAKE_GENERATOR MATCHES "Visual Studio")
-            set_target_properties(${TARGET} PROPERTIES COMMON_LANGUAGE_RUNTIME "")
-        else()
-			# can this really happen?
-            set(COMPILE_FLAGS "${COMPILE_FLAGS} /clr")
-            string(REPLACE "/EHs" "/EHa" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-        endif()
-    endif()
-
-	set_target_properties(${TARGET} PROPERTIES VS_STARTUP_PROJECT ${TARGET})
-
-	target_link_libraries(${TARGET} PRIVATE Version Dbghelp)
 endfunction()
 
 #! mo2_configure_tests : configure a target as a MO2 C++ tests
@@ -190,8 +214,6 @@ endfunction()
 #
 function(mo2_configure_tests TARGET)
 	mo2_configure_target(${TARGET} TRANSLATIONS OFF AUTOMOC OFF ${ARGN})
-
-	set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "tests")
 
 	find_package(GTest REQUIRED)
 	target_link_libraries(${TARGET} PRIVATE GTest::gtest GTest::gmock GTest::gtest_main)
@@ -222,26 +244,6 @@ function(mo2_configure_tests TARGET)
 	)
 endfunction()
 
-#! mo2_configure_uibase : configure the uibase target for MO2
-#
-# this function does mostly nothing except calling mo2_configure_target, but is useful
-# to be consistent with other mo2_configure_XXX
-#
-function(mo2_configure_uibase TARGET)
-	if (NOT (${TARGET} STREQUAL "uibase"))
-		message(WARNING "mo2_configure_uibase() should only be used on the uibase target")
-	endif()
-
-	mo2_configure_target(${TARGET} ${ARGN})
-	set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "uibase")
-
-	target_include_directories(${TARGET} PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/game_features)
-
-	mo2_set_project_to_run_from_install(
-		${TARGET} EXECUTABLE ${CMAKE_INSTALL_PREFIX}/bin/ModOrganizer.exe)
-endfunction()
-
 #! mo2_configure_plugin : configure a target as a MO2 C++ plugin
 #
 # this function automatically set uibase as a dependency
@@ -250,108 +252,27 @@ endfunction()
 #
 function(mo2_configure_plugin TARGET)
 	mo2_configure_target(${TARGET} ${ARGN})
-
-	set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "plugin")
-
 	mo2_set_project_to_run_from_install(
 		${TARGET} EXECUTABLE ${CMAKE_INSTALL_PREFIX}/bin/ModOrganizer.exe)
 endfunction()
 
-#! mo2_configure_library : configure a C++ library (NOT a plugin), can be a STATIC
-# or SHARED library
-#
-# extra arguments are given to mo2_configure_target, TRANSLATIONS and AUTOMOC are
-# OFF by default
-#
-function(mo2_configure_library TARGET)
-	mo2_configure_target(${TARGET} AUTOMOC OFF TRANSLATIONS OFF ${ARGN})
-
-	get_target_property(TARGET_TYPE ${TARGET} TYPE)
-
-	target_include_directories(${TARGET}
-		PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
-
-	if (${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
-		set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "library-static")
-	else()
-		mo2_set_project_to_run_from_install(
-			${TARGET} EXECUTABLE ${CMAKE_INSTALL_PREFIX}/bin/ModOrganizer.exe)
-		set_target_properties(${TARGET} PROPERTIES MO2_TARGET_TYPE "library-shared")
-	endif()
-endfunction()
-
-#! mo2_configure_executable : configure a target as MO2 C++ executable
-#
-# \param:ELEVATED set flag on the executable to run as elevated by default
-#
-# extra arguments are given to mo2_configure_target
-#
-function(mo2_configure_executable TARGET)
-	cmake_parse_arguments(MO2 "ELEVATED" "" "" ${ARGN})
-
-	mo2_configure_target(${TARGET} ${ARGN})
-	set_target_properties(${TARGET}
-		PROPERTIES WIN32_EXECUTABLE TRUE MO2_TARGET_TYPE "executable")
-
-	get_target_property(output_name ${TARGET} OUTPUT_NAME)
-	if("${output_name}" STREQUAL "output_name-NOTFOUND")
-		set(output_name ${TARGET})
-	endif()
-
-	mo2_set_project_to_run_from_install(
-		${TARGET} EXECUTABLE ${CMAKE_INSTALL_PREFIX}/bin/${output_name})
-
-	if (${MO2_ELEVATED})
-		# does not work with target_link_options, so keeping it that way for now... this
-		# is not a very used option anyway
-		set_target_properties(${TARGET} PROPERTIES LINK_FLAGS
-			"/MANIFESTUAC:\"level='requireAdministrator' uiAccess='false'\"")
-	endif()
-endfunction()
-
-#! mo2_install_target : set install for a MO2 target
+#! mo2_install_plugin : install the given MO2 plugin
 #
 # for this to work properly, the target must have been configured
 #
-# \param:FOLDER install the plugin as a folder, instead of a single DLL, ignore for
-#   other target types
-# \param:INSTALLDIR installation directory, default is automatically deduced based on
-#   the target type, this parameter is ignored for plugins and static libraries
+# \param:FOLDER install the plugin as a folder, instead of a single DLL
 #
-function(mo2_install_target TARGET)
-	cmake_parse_arguments(MO2 "FOLDER" "INSTALLDIR" "" ${ARGN})
+function(mo2_install_plugin TARGET)
+	cmake_parse_arguments(MO2 "FOLDER" "" "" ${ARGN})
 
-
-	get_target_property(MO2_TARGET_TYPE ${TARGET} MO2_TARGET_TYPE)
-
-	# core install: .lib, .dll or .exe, to the right folder
-	if (${MO2_TARGET_TYPE} STREQUAL "uibase")
-		mo2_set_if_not_defined(MO2_INSTALLDIR "bin")
-		install(TARGETS ${TARGET} RUNTIME DESTINATION ${MO2_INSTALLDIR})
-		install(TARGETS ${TARGET} ARCHIVE DESTINATION libs)
-	elseif (${MO2_TARGET_TYPE} STREQUAL "plugin")
-		if (${MO2_FOLDER})
-			install(TARGETS ${TARGET} RUNTIME DESTINATION bin/plugins/$<TARGET_FILE_BASE_NAME:${TARGET}>)
-		else()
-			install(TARGETS ${TARGET} RUNTIME DESTINATION bin/plugins)
-		endif()
-		install(TARGETS ${TARGET} ARCHIVE DESTINATION libs)
-	elseif (${MO2_TARGET_TYPE} STREQUAL "library-static")
-		install(TARGETS ${TARGET} ARCHIVE DESTINATION libs)
-	elseif (${MO2_TARGET_TYPE} STREQUAL "library-shared")
-		mo2_set_if_not_defined(MO2_INSTALLDIR "bin/dlls")
-		install(TARGETS ${TARGET} RUNTIME DESTINATION ${MO2_INSTALLDIR})
-		install(TARGETS ${TARGET} ARCHIVE DESTINATION libs)
-	elseif (${MO2_TARGET_TYPE} STREQUAL "executable")
-		mo2_set_if_not_defined(MO2_INSTALLDIR "bin")
-		install(TARGETS ${TARGET} RUNTIME DESTINATION ${MO2_INSTALLDIR})
+	if (${MO2_FOLDER})
+		install(TARGETS ${TARGET} RUNTIME DESTINATION bin/plugins/$<TARGET_FILE_BASE_NAME:${TARGET}>)
 	else()
-		message(FATAL_ERROR "unknown MO2 target type for target '${TARGET}', did you forget using mo2_configure_XXX?")
+		install(TARGETS ${TARGET} RUNTIME DESTINATION bin/plugins)
 	endif()
+	install(TARGETS ${TARGET} ARCHIVE DESTINATION lib)
 
 	# install PDB if possible
-	if (NOT (${MO2_TARGET_TYPE} STREQUAL "library-static"))
-		install(FILES $<TARGET_PDB_FILE:${TARGET}> DESTINATION pdb)
-	endif()
+	install(FILES $<TARGET_PDB_FILE:${TARGET}> DESTINATION pdb OPTIONAL)
 
 endfunction()

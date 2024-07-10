@@ -4,25 +4,20 @@ if (DEFINED MO2_INCLUDED)
 	return()
 endif()
 
-find_package(Qt6 6.7.0 REQUIRED COMPONENTS Core)
+set(MO2_QT_MAJOR_VERSION 6)
+set(MO2_QT_MINOR_VERSION 7)
+set(MO2_QT_PATCH_VERSION 0)
+set(MO2_QT_VERSION "${MO2_QT_MAJOR_VERSION}.${MO2_QT_MINOR_VERSION}.${MO2_QT_PATCH_VERSION}")
+
+set(MO2_PYTHON_VERSION "3.12")
+
+find_package(Qt6 ${MO2_QT_VERSION} REQUIRED COMPONENTS Core)
 
 # version-major independent variables
 set(Qt_VERSION ${Qt6_VERSION})
 set(Qt_VERSION_MAJOR ${Qt6_VERSION_MAJOR})
 
 include(${CMAKE_CURRENT_LIST_DIR}/mo2_utils.cmake)
-
-# setup path for find_package(), etc.
-mo2_required_variable(NAME CMAKE_INSTALL_PREFIX TYPE PATH)
-
-# custom property, used to keep track of the type of target
-define_property(
-	TARGET PROPERTY MO2_TARGET_TYPE INHERITED
-	BRIEF_DOCS  "Target type for MO2 C++ target."
-	FULL_DOCS "Automatically set when using mo2_configure_XXX functions.")
-
-# to be able to organize projects into folder for VS
-set(USE_FOLDERS TRUE)
 
 set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
 

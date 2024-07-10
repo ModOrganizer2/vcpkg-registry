@@ -48,8 +48,21 @@ endfunction()
 #
 # \param:VARNAME name of the variable that will contain the path to Python
 function(mo2_find_python_executable VARNAME)
-	find_package(Python 3.12 COMPONENTS Interpreter REQUIRED)
+	find_package(Python ${MO2_PYTHON_VERSION} COMPONENTS Interpreter REQUIRED)
 	set(${VARNAME} ${Python_EXECUTABLE} PARENT_SCOPE)
+endfunction()
+
+#! mo2_find_git_hash : find the git hash of HEAD on the current source project
+#
+# \param:VARNAME variable to store the git hash
+function(mo2_find_git_hash VARNAME)
+	execute_process(
+	  COMMAND git log -1 --format=%h
+	  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	  OUTPUT_VARIABLE GIT_COMMIT_HASH
+	  OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	set(${VARNAME} ${GIT_COMMIT_HASH} PARENT_SCOPE)
 endfunction()
 
 #! mo2_find_qt_executable : find the path to the executable from Qt
