@@ -17,7 +17,7 @@
       "port-version": 0
     },
     "mo2-libbsarch": {
-      "baseline": "0.0.11",
+      "baseline": "0.1.0",
       "port-version": 0
     },
     "pybind11": {
