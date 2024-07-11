@@ -7,4 +7,4 @@ get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
 get_filename_component(_IMPORT_PREFIX "${_IMPORT_PREFIX}" PATH)
 
 add_library(mo2::dds-header INTERFACE IMPORTED)
-target_sources(mo2::dds-header INTERFACE ${_IMPORT_PREFIX}/include/DDS.h)
+target_include_directories(mo2::dds-header INTERFACE ${_IMPORT_PREFIX}/include/DDS)
