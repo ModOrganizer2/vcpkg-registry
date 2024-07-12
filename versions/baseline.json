@@ -1,5 +1,9 @@
 {
   "default": {
+    "7zip": {
+      "baseline": "24.06",
+      "port-version": 0
+    },
     "asmjit": {
       "baseline": "fb9f82c",
       "port-version": 0
