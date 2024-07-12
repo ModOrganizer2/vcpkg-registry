@@ -8,12 +8,20 @@
       "baseline": "0.23.0",
       "port-version": 0
     },
+    "mo2-bsatk": {
+      "baseline": "1.3.12",
+      "port-version": 0
+    },
     "mo2-cmake": {
       "baseline": "0.1.2",
       "port-version": 0
     },
     "mo2-dds-header": {
       "baseline": "jun2024",
+      "port-version": 0
+    },
+    "mo2-esptk": {
+      "baseline": "1.3.12",
       "port-version": 0
     },
     "mo2-libbsarch": {
