@@ -11,3 +11,5 @@ vcpkg_cmake_install()
 vcpkg_copy_pdbs()
 
 vcpkg_cmake_config_fixup(PACKAGE_NAME "mo2-esptk" CONFIG_PATH "lib/cmake/mo2-esptk")
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
