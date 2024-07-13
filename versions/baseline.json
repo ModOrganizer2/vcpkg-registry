@@ -17,7 +17,7 @@
       "port-version": 0
     },
     "mo2-cmake": {
-      "baseline": "0.1.2",
+      "baseline": "0.1.3",
       "port-version": 0
     },
     "mo2-dds-header": {
