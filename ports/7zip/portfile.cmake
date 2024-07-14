@@ -1,4 +1,5 @@
 set(VCPKG_LIBRARY_LINKAGE dynamic)
+set(VCPKG_POLICY_DLLS_IN_STATIC_LIBRARY enabled)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
