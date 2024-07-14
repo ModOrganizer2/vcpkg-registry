@@ -1,0 +1,20 @@
+set(VCPKG_LIBRARY_LINKAGE dynamic)
+set(VCPKG_POLICY_DLLS_IN_STATIC_LIBRARY enabled)
+
+vcpkg_from_github(
+    OUT_SOURCE_PATH SOURCE_PATH
+    REPO ModOrganizer2/modorganizer-archive
+    REF A22A61C0E9F637779DC6F58A7E3CC8BF6EED5CD3
+    SHA512 960140B47BC089EE6CBBBB21852C2EAC3427969722C6C3DC6F9BBA803EB59865447F618EDD23FDDAE45F1CBD65E1E5D6B0C1B5946B10540A30F4F422CA992564
+    HEAD_REF master
+)
+
+vcpkg_cmake_configure(SOURCE_PATH "${SOURCE_PATH}")
+vcpkg_cmake_install()
+vcpkg_copy_pdbs()
+
+vcpkg_cmake_config_fixup(PACKAGE_NAME "mo2-archive" CONFIG_PATH "lib/cmake/mo2-archive")
+
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+
+vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/LICENSE")
