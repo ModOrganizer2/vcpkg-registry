@@ -1,7 +1,7 @@
 {
   "default": {
     "7zip": {
-      "baseline": "24.06",
+      "baseline": "24.09",
       "port-version": 0
     },
     "asmjit": {
@@ -9,7 +9,7 @@
       "port-version": 0
     },
     "libloot": {
-      "baseline": "0.23.0",
+      "baseline": "0.26.2",
       "port-version": 0
     },
     "mo2-archive": {
@@ -45,11 +45,11 @@
       "port-version": 0
     },
     "pybind11": {
-      "baseline": "2.13.1",
+      "baseline": "2.13.6",
       "port-version": 0
     },
     "spdlog": {
-      "baseline": "1.14.1",
+      "baseline": "1.15.3",
       "port-version": 0
     },
     "usvfs": {
