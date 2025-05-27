@@ -1,6 +1,6 @@
 {
   "name": "mo2-libbsarch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BSArchive Dynamic Link Library and C++ bindings.",
   "homepage": "https://github.com/ModOrganizer2/libbsarch/",
   "license": "MIT",
