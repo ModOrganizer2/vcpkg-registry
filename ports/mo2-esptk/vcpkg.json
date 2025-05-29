@@ -1,6 +1,6 @@
 {
   "name": "mo2-esptk",
-  "version": "1.3.12",
+  "version": "1.4.0",
   "description": "MO2 library to handle ESP files.",
   "homepage": "https://github.com/ModOrganizer2/modorganizer-esptk",
   "license": "GPL-3.0",
