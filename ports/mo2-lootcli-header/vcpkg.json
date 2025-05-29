@@ -1,6 +1,6 @@
 {
   "name": "mo2-lootcli-header",
-  "version": "1.3.12",
+  "version": "1.7.0",
   "description": "MO2 header file to manage lootcli output.",
   "homepage": "https://github.com/ModOrganizer2/modorganizer-lootcli",
   "license": "GPL-3.0",
