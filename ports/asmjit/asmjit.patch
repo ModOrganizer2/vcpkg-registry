@@ -10,23 +10,23 @@ index 37061c9..a211ae1 100644
 -# [AsmJit - Configuration]
 -# =============================================================================
 +cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
- 
+
 -# Embedding mode, asmjit will not create any targets (default FALSE).
 -# set(ASMJIT_EMBED FALSE)
 +cmake_policy(PUSH)
- 
+
 -# Whether to build a static library (default FALSE).
 -# set(ASMJIT_STATIC FALSE)
 +if (POLICY CMP0063)
 +  cmake_policy(SET CMP0063 NEW) # Honor visibility properties.
 +endif()
- 
+
 -# Used for debugging asmjit itself (default FALSE).
 -# set(ASMJIT_TRACE FALSE)
 +if (POLICY CMP0092)
 +  cmake_policy(SET CMP0092 NEW) # Don't add -W3 warning level by default.
 +endif()
- 
+
 -# Whether to build ARM32 backend (TRUE if building for ARM32).
 -# set(ASMJIT_BUILD_ARM32 FALSE)
 +# Don't create a project if it was already created by another CMakeLists.txt.
@@ -34,38 +34,38 @@ index 37061c9..a211ae1 100644
 +if (NOT CMAKE_PROJECT_NAME OR "${CMAKE_PROJECT_NAME}" STREQUAL "asmjit")
 +  project(asmjit CXX)
 +endif()
- 
+
 -# Whether to build ARM64 backend (TRUE if building for ARM64).
 -# set(ASMJIT_BUILD_ARM64 FALSE)
 +include(CheckCXXCompilerFlag)
 +INCLUDE(CheckCXXSourceCompiles)
 +include(GNUInstallDirs)
- 
+
 -# Whether to build X86 backend (TRUE if building for X86).
 -# set(ASMJIT_BUILD_X86 FALSE)
 +# AsmJit - Deprecated
 +# ===================
- 
+
 -# Whether to build X64 backend (TRUE if building for X64).
 -# set(ASMJIT_BUILD_X64 FALSE)
 +if (DEFINED ASMJIT_BUILD_EMBED)
 +  message(DEPRECATION "ASMJIT_BUILD_EMBED is deprecated, use ASMJIT_EMBED")
 +  set(ASMJIT_EMBED "${ASMJIT_BUILD_EMBED}")
 +endif()
- 
+
 -# Whether to build tests and samples (default FALSE).
 -# set(ASMJIT_BUILD_TEST FALSE)
 +if (DEFINED ASMJIT_BUILD_STATIC)
 +  message(DEPRECATION "ASMJIT_BUILD_STATIC is deprecated, use ASMJIT_STATIC")
 +  set(ASMJIT_STATIC "${ASMJIT_BUILD_STATIC}")
 +endif()
- 
+
 -# =============================================================================
 -# [AsmJit - Build / Embed]
 -# =============================================================================
 +# AsmJit - Configuration - Build
 +# ==============================
- 
+
 -# Do not create a project if this CMakeLists.txt is included from another
 -# project. This makes it easy to embed or create a static library.
 -if(NOT CMAKE_PROJECT_NAME OR "${CMAKE_PROJECT_NAME}" MATCHES "^asmjit$")
@@ -76,7 +76,7 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_TEST)
 +  set(ASMJIT_TEST FALSE)
  endif()
- 
+
 -if(ASMJIT_EMBED)
 -  set(ASMJIT_SIGNATURE "${ASMJIT_SIGNATURE} | Mode=Embed")
 -  set(ASMJIT_STATIC TRUE) # Implies ASMJIT_STATIC.
@@ -87,7 +87,7 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_EMBED)
 +  set(ASMJIT_EMBED FALSE)
  endif()
- 
+
 -if(ASMJIT_BUILD_TEST)
 -  set(ASMJIT_SIGNATURE "${ASMJIT_SIGNATURE} | Test=On")
 -else()
@@ -95,13 +95,13 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_STATIC)
 +  set(ASMJIT_STATIC ${ASMJIT_EMBED})
  endif()
- 
+
 -if(NOT ASMJIT_DIR)
 -  set(ASMJIT_DIR ${CMAKE_CURRENT_LIST_DIR})
 +if (NOT DEFINED ASMJIT_SANITIZE)
 +  set(ASMJIT_SANITIZE FALSE)
  endif()
- 
+
 -message("-- [asmjit] ${ASMJIT_SIGNATURE}")
 -message("-- [asmjit] ASMJIT_DIR=${ASMJIT_DIR}")
 -
@@ -142,14 +142,14 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_NO_CUSTOM_FLAGS)
 +  set(ASMJIT_NO_CUSTOM_FLAGS FALSE)
 +endif()
- 
+
 -if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 -  set(ASMJIT_D "/D")
 -  set(ASMJIT_PRIVATE_LFLAGS "/OPT:REF /OPT:ICF")
 +if (NOT DEFINED ASMJIT_NO_NATVIS)
 +  set(ASMJIT_NO_NATVIS FALSE)
 +endif()
- 
+
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS /GF)
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS_DBG /GS /GR-)
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS_REL /Oi /Oy /GS- /GR-)
@@ -160,7 +160,7 @@ index 37061c9..a211ae1 100644
 +if (ASMJIT_EMBED AND NOT ASMJIT_STATIC)
 +  set(ASMJIT_STATIC TRUE)
  endif()
- 
+
 -if("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(GNU|Clang)$")
 -  # Keep only the first option detected.
 -  np_detect_options(ASMJIT_CC_OPTIONS
@@ -173,7 +173,7 @@ index 37061c9..a211ae1 100644
 -  endif()
 +# AsmJit - Configuration - Backend
 +# ================================
- 
+
 -  np_detect_options(ASMJIT_CC_OPTIONS
 -    "-fno-exceptions"
 -    "-fno-tree-vectorize"
@@ -181,18 +181,18 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_NO_X86)
 +  set(ASMJIT_NO_X86 FALSE)
 +endif()
- 
+
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS ${ASMJIT_CC_OPTIONS})
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS_REL -fmerge-all-constants)
 +if (NOT DEFINED ASMJIT_NO_AARCH64)
 +  set(ASMJIT_NO_AARCH64 FALSE)
 +endif()
- 
+
 -  unset(ASMJIT_CC_OPTIONS)
 +if (NOT DEFINED ASMJIT_NO_FOREIGN)
 +  set(ASMJIT_NO_FOREIGN FALSE)
  endif()
- 
+
 -if(ASMJIT_EMBED)
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS "${ASMJIT_D}ASMJIT_EMBED")
 -elseif(ASMJIT_STATIC)
@@ -203,13 +203,13 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_NO_DEPRECATED)
 +  set(ASMJIT_NO_DEPRECATED FALSE)
  endif()
- 
+
 -if(ASMJIT_TRACE)
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS "${ASMJIT_D}ASMJIT_TRACE")
 +if (NOT DEFINED ASMJIT_NO_SHM_OPEN)
 +  set(ASMJIT_NO_SHM_OPEN FALSE)
  endif()
- 
+
 -if(WIN32)
 -  list(APPEND ASMJIT_PRIVATE_CFLAGS "${ASMJIT_D}_UNICODE")
 -else()
@@ -217,38 +217,38 @@ index 37061c9..a211ae1 100644
 +if (NOT DEFINED ASMJIT_NO_JIT)
 +  set(ASMJIT_NO_JIT FALSE)
  endif()
- 
+
 -if("${CMAKE_SYSTEM_NAME}" MATCHES "Linux")
 -  list(APPEND ASMJIT_DEPS rt)
 +if (NOT DEFINED ASMJIT_NO_TEXT)
 +  set(ASMJIT_NO_TEXT FALSE)
  endif()
- 
+
 -set(ASMJIT_LIBS ${ASMJIT_DEPS})
 -if(NOT ASMJIT_EMBED)
 -  list(INSERT ASMJIT_LIBS 0 asmjit)
 +if (NOT DEFINED ASMJIT_NO_LOGGING)
 +  set(ASMJIT_NO_LOGGING ${ASMJIT_NO_TEXT})
  endif()
- 
+
 -if(ASMJIT_BUILD_ARM32)
 -  List(APPEND ASMJIT_CFLAGS "${ASMJIT_D}ASMJIT_BUILD_ARM32")
 +if (NOT DEFINED ASMJIT_NO_VALIDATION)
 +  set(ASMJIT_NO_VALIDATION FALSE)
  endif()
- 
+
 -if(ASMJIT_BUILD_ARM64)
 -  List(APPEND ASMJIT_CFLAGS "${ASMJIT_D}ASMJIT_BUILD_ARM64")
 +if (NOT DEFINED ASMJIT_NO_INTROSPECTION)
 +  set(ASMJIT_NO_INTROSPECTION FALSE)
  endif()
- 
+
 -if(ASMJIT_BUILD_X86)
 -  List(APPEND ASMJIT_CFLAGS "${ASMJIT_D}ASMJIT_BUILD_X86")
 +if (NOT DEFINED ASMJIT_NO_BUILDER)
 +  set(ASMJIT_NO_BUILDER FALSE)
  endif()
- 
+
 -if(ASMJIT_BUILD_X64)
 -  List(APPEND ASMJIT_CFLAGS "${ASMJIT_D}ASMJIT_BUILD_X64")
 +if (NOT DEFINED ASMJIT_NO_COMPILER)
@@ -258,7 +258,7 @@ index 37061c9..a211ae1 100644
 +    set(ASMJIT_NO_COMPILER FALSE)
 +  endif()
  endif()
- 
+
 -set(ASMJIT_PRIVATE_CFLAGS_DBG ${ASMJIT_CFLAGS} ${ASMJIT_PRIVATE_CFLAGS} ${ASMJIT_PRIVATE_CFLAGS_DBG})
 -set(ASMJIT_PRIVATE_CFLAGS_REL ${ASMJIT_CFLAGS} ${ASMJIT_PRIVATE_CFLAGS} ${ASMJIT_PRIVATE_CFLAGS_REL})
 +# AsmJit - Configuration - CMake Introspection
@@ -314,7 +314,7 @@ index 37061c9..a211ae1 100644
 +  endforeach()
 +  set(${out} "${out_array}" PARENT_SCOPE)
 +endfunction()
- 
+
 -message("-- [asmjit] ASMJIT_DEPS=${ASMJIT_DEPS}")
 -message("-- [asmjit] ASMJIT_LIBS=${ASMJIT_LIBS}")
 -message("-- [asmjit] ASMJIT_CFLAGS=${ASMJIT_CFLAGS}")
@@ -322,7 +322,7 @@ index 37061c9..a211ae1 100644
 +function(asmjit_detect_sanitizers out)
 +  set(_out_array ${${out}})
 +  set(_flags "")
- 
+
 -# =============================================================================
 -# [AsmJit - Macros]
 -# =============================================================================
@@ -330,7 +330,7 @@ index 37061c9..a211ae1 100644
 +    string(REPLACE "," ";" _arg "${_arg}")
 +    list(APPEND _flags ${_arg})
 +  endforeach()
- 
+
 -macro(asmjit_add_source _out_dst _src_dir)
 -  set(_src_path "${ASMJIT_SOURCE_DIR}/${_src_dir}")
 -  set(_src_list)
@@ -338,7 +338,7 @@ index 37061c9..a211ae1 100644
 +    if (NOT "${_flag}" MATCHES "^-fsanitize=")
 +      SET(_flag "-fsanitize=${_flag}")
 +    endif()
- 
+
 -  foreach(_arg ${ARGN})
 -    set(_src_file "${_src_path}/${_arg}")
 -    list(APPEND _src_list ${_src_file})
@@ -347,13 +347,13 @@ index 37061c9..a211ae1 100644
 +    asmjit_detect_cflags(_out_array ${_flag})
 +    unset(CMAKE_REQUIRED_FLAGS)
    endforeach()
- 
+
 -  list(APPEND "${_out_dst}" ${_src_list})
 -  source_group(${_src_dir} FILES ${_src_list})
 -endmacro()
 +  set(${out} "${_out_array}" PARENT_SCOPE)
 +endfunction()
- 
+
 -macro(asmjit_add_library _target _src _deps _cflags _cflags_dbg _cflags_rel)
 -  if(NOT ASMJIT_STATIC)
 -    add_library(${_target} SHARED ${_src})
@@ -368,7 +368,7 @@ index 37061c9..a211ae1 100644
 -    add_library(${_target} STATIC ${_src})
 +    add_library(${target} ${target_type} ${X_SOURCES})
    endif()
- 
+
 -  target_link_libraries(${_target} ${_deps})
 -  set_target_properties(${_target} PROPERTIES LINK_FLAGS "${ASMJIT_PRIVATE_LFLAGS}")
 +  set_target_properties(${target} PROPERTIES DEFINE_SYMBOL "")
@@ -388,7 +388,7 @@ index 37061c9..a211ae1 100644
 +    add_test(NAME ${target} COMMAND ${target})
 +  endif()
 +endfunction()
- 
+
 -  if(CMAKE_BUILD_TYPE)
 -    if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
 -      target_compile_options(${_target} PRIVATE ${_cflags} ${_cflags_dbg})
@@ -448,7 +448,7 @@ index 37061c9..a211ae1 100644
 +
 +    # Linker must receive the same flags as the compiler when it comes to sanitizers.
 +    set(ASMJIT_SANITIZE_LFLAGS ${ASMJIT_SANITIZE_CFLAGS})
- 
+
 -  if(NOT ASMJIT_STATIC)
 -    install(TARGETS ${_target} DESTINATION "lib${LIB_SUFFIX}")
 +    # Don't omit frame pointer if sanitizers are enabled.
@@ -463,7 +463,7 @@ index 37061c9..a211ae1 100644
    endif()
 -endmacro()
 +endif()
- 
+
 -# =============================================================================
 -# [AsmJit - Source]
 -# =============================================================================
@@ -497,7 +497,7 @@ index 37061c9..a211ae1 100644
 +    message("-- Dependency: libpthread not provided by libc, linking to libpthread")
 +    list(APPEND ASMJIT_DEPS pthread)
 +  endif()
- 
+
 -set(ASMJIT_SRC "")
 +  # Dependency: shm_open (required so AsmJit can use shm_open on supported platforms).
 +  if ("${CMAKE_SYSTEM_NAME}" MATCHES "^(Linux|NetBSD)$" AND NOT ASMJIT_NO_SHM_OPEN)
@@ -516,7 +516,7 @@ index 37061c9..a211ae1 100644
 +    endif()
 +  endif()
 +endif()
- 
+
 -asmjit_add_source(ASMJIT_SRC asmjit
 -  apibegin.h
 -  apiend.h
@@ -524,7 +524,7 @@ index 37061c9..a211ae1 100644
 +if (NOT ASMJIT_EMBED)
 +  list(INSERT ASMJIT_LIBS 0 asmjit)
 +endif()
- 
+
 -  asmjit.h
 -  base.h
 -  build.h
@@ -536,7 +536,7 @@ index 37061c9..a211ae1 100644
 +else()
 +  set(ASMJIT_TARGET_TYPE "SHARED")
 +endif()
- 
+
 -  arm.h
 -  x86.h
 -)
@@ -560,7 +560,7 @@ index 37061c9..a211ae1 100644
 +    List(APPEND ASMJIT_PRIVATE_CFLAGS "-D${build_option}")
 +  endif()
 +endforeach()
- 
+
 -asmjit_add_source(ASMJIT_SRC asmjit/base
 -  assembler.cpp
 -  assembler.h
@@ -597,7 +597,7 @@ index 37061c9..a211ae1 100644
 -)
 +# AsmJit - Linker Support
 +# =======================
- 
+
 -if(0)
 -asmjit_add_source(ASMJIT_SRC asmjit/arm
 -  armassembler.cpp
@@ -613,7 +613,7 @@ index 37061c9..a211ae1 100644
 +    set(ASMJIT_LINKER_SUPPORTS_NATVIS TRUE)
 +  endif()
  endif()
- 
+
 -asmjit_add_source(ASMJIT_SRC asmjit/x86
 -  x86assembler.cpp
 -  x86assembler.h
@@ -692,7 +692,7 @@ index 37061c9..a211ae1 100644
 +foreach(src_file ${ASMJIT_SRC_LIST})
 +  set(src_file "${ASMJIT_DIR}/src/${src_file}")
 +  list(APPEND ASMJIT_SRC ${src_file})
- 
+
 -# =============================================================================
 -# [AsmJit - Targets]
 -# =============================================================================
@@ -838,7 +838,7 @@ index 37061c9..a211ae1 100644
 +                        CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
      endif()
 -  endforeach()
- 
+
 -  # Add `asmjit` tests and samples.
 -  if(ASMJIT_BUILD_TEST)
 -    set(ASMJIT_TEST_SRC "")
@@ -894,7 +894,7 @@ index 37061c9..a211ae1 100644
 +                        CFLAGS_DBG ${ASMJIT_PRIVATE_CFLAGS_DBG}
 +                        CFLAGS_REL ${ASMJIT_PRIVATE_CFLAGS_REL})
      endif()
- 
+
 -    foreach(_target asmjit_bench_x86 asmjit_test_opcode asmjit_test_x86)
 -      add_executable(${_target} "src/test/${_target}.cpp")
 -      target_compile_options(${_target} PRIVATE ${ASMJIT_CFLAGS})
