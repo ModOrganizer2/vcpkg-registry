@@ -3,7 +3,7 @@ set(VCPKG_POLICY_DLLS_IN_STATIC_LIBRARY enabled)
 vcpkg_download_distfile(ARCHIVE
     URLS "https://github.com/loot/libloot/releases/download/${VERSION}/libloot-${VERSION}-win64.7z"
     FILENAME "libloot-${VERSION}-win64.7z"
-    SHA512 66516b0b905f299666ed6c0e32312aeda84ef7bf0000d428691aa4483312060c44e6b159e70116e0d8cdd5733c23a9da2de73c6d8a01b1db757eb45b45a25100
+    SHA512 9d50d64227922823c14200d392a82cd0e6f82e1441e8444f4f3d46bf98c9b3598e0b7bdb39ddbf2cc88a2be5d8c00ea98c72abc2f2eda9d8106cbf48c675a74d
 )
 
 vcpkg_extract_source_archive_ex(
